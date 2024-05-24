@@ -9,7 +9,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const saltRounds = 10; 
 
-router.post('/test',  ()=> {
+router.post('/test',  () => {
     return "Hello";
 });
 
