@@ -9,6 +9,10 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const saltRounds = 10; 
 
+router.post('/test',  ()=> {
+    return "Hello";
+});
+
 router.post('/register', async (req, res) => {
   const { email_adress, password, full_name, id } = req.body;
 
