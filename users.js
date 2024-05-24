@@ -63,7 +63,6 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Invalid email or password' });
     }
 
-    // Update user status to active
     const { error: updateUserError } = await supabase
       .from('users')
       .update({ active: true })
@@ -98,9 +97,6 @@ router.post('/logout', async (req, res) => {
 router.post('/room', async (req, res) => {
     const { chat_item_id, user_id } = req.body;
 
-    console.log("chat_item_id:", chat_item_id);
-    console.log("user_id:", user_id);
-  
     try {
         // Проверяем, есть ли уже комната с такими пользователями для chat_item_id
         const { data: rooms1, error: roomsError1 } = await supabase
@@ -120,7 +116,6 @@ router.post('/room', async (req, res) => {
 
         // Проверяем, существует ли комната, содержащая обоих пользователей
         const commonRoom = rooms1.find(room => rooms2.some(r => r.room_id === room.room_id));
-        console.log("Common Room:", commonRoom);
 
         let roomId;
         if (commonRoom) {
@@ -158,8 +153,6 @@ router.post('/room', async (req, res) => {
         res.status(400).json({ error: error.message });
     }
 });
-
-
 
 router.get("/rooms/:currentUserId", async (req, res) => {
     const { currentUserId } = req.params;
@@ -212,26 +205,118 @@ router.get("/rooms/:currentUserId", async (req, res) => {
     }
 });
 
-router.get('/messages/:roomId', async (req, res) => {
-    const roomId = req.params.roomId;
-    console.log(roomId);
+router.post('/messagesByRoomId', async (req, res) => {
+    const { room_id } = req.body;
   
     try {
-      // Поиск сообщений по room_id
       const { data, error } = await supabase
         .from('chat_message')
         .select('*')
-        .eq('room_id', roomId);
+        .eq('room_id', room_id);
   
       if (error) {
         throw error;
-      }
-  
+      }  
       res.status(200).json(data);
     } catch (error) {
       console.error('Error fetching messages:', error.message);
       res.status(500).json({ error: 'Failed to fetch messages' });
     }
 });
+
+router.get("/lastMessage/:roomId", async (req, res) => {
+    const { roomId } = req.params;
+
+    try {
+        const { data, error } = await supabase
+            .from('chat_message')
+            .select('*')
+            .eq('room_id', roomId)
+            .order('timestamp', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (error) {
+            throw error;
+        }
+
+        res.status(200).json(data);
+    } catch (error) {
+        console.error('Error fetching last message:', error.message);
+        res.status(500).json({ error: 'Failed to fetch last message' });
+    }
+});
+
+router.delete("/message/:id", async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const { data, error } = await supabase
+            .from('chat_message')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            throw error;
+        }
+
+        res.status(200).json({ message: 'Message deleted successfully', data });
+    } catch (error) {
+        console.error('Error deleting message:', error.message);
+        res.status(500).json({ error: 'Failed to delete message' });
+    }
+});
+
+router.delete('/chat/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // Удаление сообщений в чате
+        const { data: messagesData, error: messagesError } = await supabase
+            .from('chat_message')
+            .delete()
+            .eq('room_id', id);
+
+        if (messagesError) {
+            throw messagesError;
+        }
+
+        // Удаление участников чата
+        const { data: membersData, error: membersError } = await supabase
+            .from('members')
+            .delete()
+            .eq('room_id', id);
+
+        if (membersError) {
+            throw membersError;
+        }
+
+        // Удаление самого чата
+        const { data: chatData, error: chatError } = await supabase
+            .from('rooms')
+            .delete()
+            .eq('id', id);
+
+        if (chatError) {
+            throw chatError;
+        }
+
+        res.status(200).json({
+            message: 'Chat, associated messages, and members deleted successfully',
+            chatData,
+            messagesData,
+            membersData
+        });
+    } catch (error) {
+        console.error('Error deleting chat, messages, and members:', error.message);
+        res.status(500).json({ error: 'Failed to delete chat, messages, and members' });
+    }
+});
+
+
+module.exports = router;
+
+
+  
 
 module.exports = router;

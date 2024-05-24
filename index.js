@@ -24,8 +24,6 @@ wss.on('connection', function connection(ws) {
   console.log('A user connected');
 
   ws.on('message', async function incoming(message) {
-    console.log('received %s', message);
-
     let parsedMessage;
     try {
       parsedMessage = JSON.parse(message);
@@ -70,6 +68,7 @@ wss.on('connection', function connection(ws) {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on http://0.0.0.0:${PORT}`);
 });
+
