@@ -71,4 +71,3 @@ wss.on('connection', function connection(ws) {
 server.listen(PORT, () => {
   console.log("Server ready on port 3000.");
 });
-
