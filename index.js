@@ -11,7 +11,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const PORT = 3000;
 const app = express();
 
-const server = https.createServer(options, app);
+const server = https.createServer(app);
 const wss = new WebSocket.Server({ server });
 const usersRouter = require('./users');
 
