@@ -12,7 +12,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const PORT = 3000;
 const app = express();
 
-// Конфигурация SSL
+// Конфігурація SSL
 const options = {
   key: fs.readFileSync('server-key.pem'),
   cert: fs.readFileSync('server-cert.pem')
@@ -27,7 +27,6 @@ app.use(express.json());
 app.use('/users', usersRouter);
 
 const clients = new Map();
-const rooms = new Map();
 
 wss.on('connection', function connection(ws) {
   console.log('A user connected');
@@ -41,55 +40,35 @@ wss.on('connection', function connection(ws) {
       ws.send(JSON.stringify({ error: "Invalid JSON format" }));
       return;
     }
-
-    if (parsedMessage.type === 'register') {
-      const { userId, roomId } = parsedMessage;
-      clients.set(userId, ws);
-      ws.userId = userId;
-
-      if (!rooms.has(roomId)) {
-        rooms.set(roomId, new Set());
-      }
-      rooms.get(roomId).add(ws);
-
-      ws.send(JSON.stringify({ message: "User registered", userId: userId }));
-    } else if (parsedMessage.type === 'message') {
+  
+    if (parsedMessage.type === 'message') {
       const { id, sender_id, recepient_id, room_id, message_text, timestamp } = parsedMessage;
       const { data, error } = await supabase
         .from('chat_message')
         .insert([{ id, sender_id, recepient_id, room_id, message_text, timestamp }]);
-
+  
       if (error) {
         console.error('Error saving message:', error);
         return;
       }
-
-      if (rooms.has(room_id)) {
-        rooms.get(room_id).forEach(client => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(parsedMessage));
-          }
-        });
+  
+      const recipientWs = clients.get(recepient_id);
+      if (recipientWs) {
+        recipientWs.send(JSON.stringify(parsedMessage));
       }
     }
   });
+  
 
   ws.on('close', () => {
     console.log('A user disconnected');
     if (ws.userId) {
       clients.delete(ws.userId);
-      rooms.forEach((clients, roomId) => {
-        if (clients.has(ws)) {
-          clients.delete(ws);
-          if (clients.size === 0) {
-            rooms.delete(roomId);
-          }
-        }
-      });
     }
   });
 });
 
 server.listen(PORT, () => {
-  console.log(`Server is running on port${PORT}`);
+  console.log("Server ready on port 3000.");
 });
+
