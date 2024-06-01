@@ -40,33 +40,25 @@ wss.on('connection', function connection(ws) {
       ws.send(JSON.stringify({ error: "Invalid JSON format" }));
       return;
     }
-
-    if (parsedMessage.type === 'register') {
-      clients.set(parsedMessage.userId, ws);
-      ws.userId = parsedMessage.userId;
-      ws.send(JSON.stringify({ message: "User registered", userId: parsedMessage.userId }));
-    } else if (parsedMessage.type === 'message') {
+  
+    if (parsedMessage.type === 'message') {
       const { id, sender_id, recepient_id, room_id, message_text, timestamp } = parsedMessage;
-
-      // Сохраняем сообщение в базу данных
       const { data, error } = await supabase
         .from('chat_message')
-        .insert([
-          { id, sender_id, recepient_id, room_id, message_text, timestamp }
-        ]);
-
+        .insert([{ id, sender_id, recepient_id, room_id, message_text, timestamp }]);
+  
       if (error) {
         console.error('Error saving message:', error);
         return;
       }
-
-      // Отправляем сообщение получателю, если он подключен
+  
       const recipientWs = clients.get(recepient_id);
       if (recipientWs) {
         recipientWs.send(JSON.stringify(parsedMessage));
       }
     }
   });
+  
 
   ws.on('close', () => {
     console.log('A user disconnected');
