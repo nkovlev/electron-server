@@ -8,7 +8,7 @@ const supabaseUrl = "https://njznfalivirfsoamylaw.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qem5mYWxpdmlyZnNvYW15bGF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTI5MjQ1NjEsImV4cCI6MjAyODUwMDU2MX0.Qnr0mEK2n9K9PIKF2dz8VjHGEEueZjDNKddiNqMnXR8";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
@@ -65,13 +65,14 @@ wss.on('connection', function connection(ws) {
         return;
       }
 
-      // Отправляем сообщение всем участникам комнаты
-      roomMembers.forEach(member => {
-        const client = clients.get(member.user_id);
-        if (client && client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify(parsedMessage));
-        }
-      });
+     // Отправляем сообщение всем участникам комнаты
+roomMembers.forEach(member => {
+  const client = clients.get(member.user_id);
+  if (client && client.readyState === WebSocket.OPEN) {
+    client.send(JSON.stringify(parsedMessage));
+    console.log(`Сообщение отправлено пользователю ${member.user_id}`);
+  }
+});
     }
   });
 
