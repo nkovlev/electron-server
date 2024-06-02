@@ -1,3 +1,4 @@
+
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -18,7 +19,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/users', usersRouter);
 
-const clients = new Map(); // Хранение соединений клиентов
+const clients = new Map();
 
 wss.on('connection', function connection(ws) {
   console.log('A user connected');
@@ -34,9 +35,10 @@ wss.on('connection', function connection(ws) {
     }
 
     if (parsedMessage.type === 'register') {
-      const { userId, roomId } = parsedMessage;
-      clients.set(userId, ws); // Сохраняем клиента по его userId
+      const { userId } = parsedMessage;
+      clients.set(userId, ws);
       ws.userId = userId;
+      console.log(`User registered: ${userId}`);
 
       ws.send(JSON.stringify({ message: "User registered", userId: userId }));
     } else if (parsedMessage.type === 'message') {
@@ -54,25 +56,14 @@ wss.on('connection', function connection(ws) {
         return;
       }
 
-      // Запрашиваем участников комнаты у Supabase
-      const { data: roomMembers, error: roomError } = await supabase
-        .from('members')
-        .select('user_id')
-        .eq('room_id', room_id);
-
-      if (roomError) {
-        console.error('Error fetching room members:', roomError);
-        return;
+      // Отправляем сообщение конкретному получателю
+      const client = clients.get(recepient_id);
+      if (client && client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(parsedMessage));
+        console.log(`Сообщение отправлено пользователю ${recepient_id}`);
+      } else {
+        console.log(`Пользователь ${recepient_id} не в сети. Сообщение сохранено.`);
       }
-
-     // Отправляем сообщение всем участникам комнаты
-roomMembers.forEach(member => {
-  const client = clients.get(member.user_id);
-  if (client && client.readyState === WebSocket.OPEN) {
-    client.send(JSON.stringify(parsedMessage));
-    console.log(`Сообщение отправлено пользователю ${member.user_id}`);
-  }
-});
     }
   });
 
@@ -80,6 +71,7 @@ roomMembers.forEach(member => {
     console.log('A user disconnected');
     if (ws.userId) {
       clients.delete(ws.userId); // Удаляем клиента из списка клиентов
+      console.log(`User disconnected: ${ws.userId}`);
     }
   });
 });
